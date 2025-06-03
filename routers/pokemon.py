@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Body
 from fastapi.responses import JSONResponse, HTMLResponse
 from typing import Annotated, List
 from sqlalchemy.orm import Session
@@ -8,6 +8,7 @@ from schemas.pokemon_schema_output import PokemonDTO
 from starlette import status
 from models.pokemon_model import Pokemon
 from httpx import AsyncClient
+from schemas.pokemon_update import PokemonStatsUpdate
 
 router = APIRouter(
     prefix="/pokemon",
@@ -60,6 +61,35 @@ async def get_pokemon_by_id(db: db_dependency,
       <body>
         <h1>{pokemon.pokemon_name} (#{pokemon_id})</h1>
         <img src="{image_url}" alt="Imagem do Pokémon {pokemon.pokemon_name}" />
+
+        <h2>Height: {pokemon.height_m}m</ h2>
+        <h2>Weight: {pokemon.weight_kg}kg</ h2>
+
+        <h2>Stats:</h2>
+        <ul>
+            <li>HP: {pokemon.hp}</li>
+            <li>Attack: {pokemon.attack}</li>
+            <li>Defense: {pokemon.defense}</li>
+            <li>Special Attack: {pokemon.sp_attack}</li>
+            <li>Special Defense: {pokemon.sp_defense}</li>
+            <li>Speed: {pokemon.speed}</li>
+        </ul>
+
+        <h2>Abilities:</ h2>
+        <ul>
+            <li>Ability 1: {pokemon.abilities_0}</li>
+            <li>Ability 2: {pokemon.abilities_1}</li>
+        </ul>
+
+        <h2>First Form: {pokemon.evochain_1}</ h2>
+        <h2>Second Form: {pokemon.evochain_2}</ h2>
+        <h2>Third Form: {pokemon.evochain_3}</ h2>
+        <h2>Fourth Form: {pokemon.evochain_4}</ h2>
+        <br>
+        <br>
+        <h2>Mega Evolution: {pokemon.mega_evolution}</ h2>
+
+        <h2>Description: </h2>
         <p>{pokemon.description}</p>
       </body>
     </html>
@@ -76,3 +106,59 @@ def get_all_legendary_pokemons(db: db_dependency):
         raise HTTPException(status_code=404, detail="No legendary pokemons found.")
     
     return legendary_pokemons
+
+
+@router.post("/add-new-pokemon",
+             status_code=status.HTTP_201_CREATED)
+async def add_new_pokemon(db: db_dependency,
+                          pokemon_request: PokemonSchema):
+    pokemon_model = Pokemon(**pokemon_request.model_dump())
+
+    existing_pokemon = db.query(Pokemon).filter(Pokemon.national_number == pokemon_model.national_number).first()
+
+    if existing_pokemon:
+        raise HTTPException(status_code=400,
+                            detail="Pokemon with this id already exists!")
+
+    db.add(pokemon_model)
+    db.commit()
+
+    return JSONResponse(status_code=status.HTTP_201_CREATED, content="Pokemon added succesfully!")
+
+
+
+@router.patch("/update-pokemon-stats/{pokemon_id}",
+              status_code=status.HTTP_200_OK)
+async def update_pokemon_stats(db: db_dependency,
+                               stats: PokemonStatsUpdate,
+                               pokemon_id: int = Path(gt=0)):
+    
+    pokemon = db.query(Pokemon).filter(Pokemon.national_number == pokemon_id).first()
+
+    if not pokemon:
+        raise HTTPException(status_code=404, detail="No pokemons found with this Id :(")
+
+    for field, value in stats.model_dump(exclude_unset=True).items():
+        setattr(pokemon, field, value)
+
+    db.commit()
+    db.refresh(pokemon)
+
+    return JSONResponse({"message": "Pokemon stats updated successfully", "pokemon_id": pokemon.national_number})
+
+
+@router.delete("/delete-pokemon/{pokemon_id}",
+               status_code=status.HTTP_200_OK)
+async def delete_pokemon(db: db_dependency,
+                         pokemon_id: int = Path(gt=0)):
+    pokemon_to_delete = db.query(Pokemon).filter(Pokemon.national_number == pokemon_id).first()
+
+    if not pokemon_to_delete:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="No pokemon found with this id.")
+    
+    db.delete(pokemon_to_delete)
+    db.commit()
+
+    return JSONResponse(status_code=status.HTTP_200_OK,
+                        content="Pokemon deleted succesfully.")

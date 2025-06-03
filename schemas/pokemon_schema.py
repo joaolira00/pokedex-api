@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 class PokemonSchema(BaseModel):
-    national_number: int = Field(gt=898)
+    national_number: int = Field(gt=0)
     gen: str = Field(min_length=1, max_length=4)
     pokemon_name: str = Field(min_length=1, max_length=50)
     primary_type: str = Field(min_length=1, max_length=50)
@@ -22,9 +22,9 @@ class PokemonSchema(BaseModel):
     is_legendary: bool = Field(default=False)
     is_mythical: bool = Field(default=False)
     evochain_1: str = Field(min_length=1, max_length=50)
-    evochain_2: str = Field(min_length=1, max_length=50)
-    evochain_3: str = Field(min_length=1, max_length=50)
-    evochain_4: str = Field(min_length=1, max_length=50)
+    evochain_2: Optional[str] = Field(max_length=50)
+    evochain_3: Optional[str] = Field(max_length=50)
+    evochain_4: Optional[str] = Field(max_length=50)
     mega_evolution: Optional[str] = Field(max_length=50)
     description: str = Field(min_length=1, max_length=255)
     image: Optional[str] = Field(max_length=255)
