@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Path
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from typing import Annotated, List
 from sqlalchemy.orm import Session
 from database.database import SessionLocal
@@ -7,6 +7,7 @@ from schemas.pokemon_schema import PokemonSchema
 from schemas.pokemon_schema_output import PokemonDTO
 from starlette import status
 from models.pokemon_model import Pokemon
+from httpx import AsyncClient
 
 router = APIRouter(
     prefix="/pokemon",
@@ -38,14 +39,33 @@ def get_all_pokemons(db: db_dependency):
 
 
 @router.get("/get-pokemon-by-id/{pokemon_id}")
-def get_pokemon_by_id(db: db_dependency,
+async def get_pokemon_by_id(db: db_dependency,
                       pokemon_id: int = Path(gt=0)):
-    pokemon = db.query(Pokemon).filter(Pokemon.national_number == pokemon_id).all()
+    pokemon = db.query(Pokemon).filter(Pokemon.national_number == pokemon_id).first()
 
     if pokemon is None:
         raise HTTPException(status_code=404, detail="No pokemon found with this id :(")
     
-    return pokemon
+    image_url = f"https://www.pokemon.com/static-assets/content-assets/cms2/img/pokedex/full/{pokemon_id:03d}.png"
+
+    async with AsyncClient() as client:
+        response = await client.get(image_url)
+        if response.status_code != 200:
+            raise HTTPException(status_code=404, detail="Pokemon image not found.")
+
+    
+        html_content = f"""
+    <html>
+      <head><title>Pokémon: {pokemon_id}</title></head>
+      <body>
+        <h1>{pokemon.pokemon_name} (#{pokemon_id})</h1>
+        <img src="{image_url}" alt="Imagem do Pokémon {pokemon.pokemon_name}" />
+        <p>{pokemon.description}</p>
+      </body>
+    </html>
+    """
+
+    return HTMLResponse(content=html_content, status_code=200)
 
 
 @router.get("/get-all-legendary-pokemons")
