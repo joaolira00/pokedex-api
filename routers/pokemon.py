@@ -53,49 +53,10 @@ async def get_pokemon_by_id(db: db_dependency,
         response = await client.get(image_url)
         if response.status_code != 200:
             raise HTTPException(status_code=404, detail="Pokemon image not found.")
-
     
-        html_content = f"""
-    <html>
-      <head><title>Pokémon: {pokemon_id}</title></head>
-      <body>
-        <h1>{pokemon.pokemon_name} (#{pokemon_id})</h1>
-        <img src="{image_url}" alt="Imagem do Pokémon {pokemon.pokemon_name}" />
+    pokemon.image = image_url
 
-        <h2>Height: {pokemon.height_m}m</ h2>
-        <h2>Weight: {pokemon.weight_kg}kg</ h2>
-
-        <h2>Stats:</h2>
-        <ul>
-            <li>HP: {pokemon.hp}</li>
-            <li>Attack: {pokemon.attack}</li>
-            <li>Defense: {pokemon.defense}</li>
-            <li>Special Attack: {pokemon.sp_attack}</li>
-            <li>Special Defense: {pokemon.sp_defense}</li>
-            <li>Speed: {pokemon.speed}</li>
-        </ul>
-
-        <h2>Abilities:</ h2>
-        <ul>
-            <li>Ability 1: {pokemon.abilities_0}</li>
-            <li>Ability 2: {pokemon.abilities_1}</li>
-        </ul>
-
-        <h2>First Form: {pokemon.evochain_1}</ h2>
-        <h2>Second Form: {pokemon.evochain_2}</ h2>
-        <h2>Third Form: {pokemon.evochain_3}</ h2>
-        <h2>Fourth Form: {pokemon.evochain_4}</ h2>
-        <br>
-        <br>
-        <h2>Mega Evolution: {pokemon.mega_evolution}</ h2>
-
-        <h2>Description: </h2>
-        <p>{pokemon.description}</p>
-      </body>
-    </html>
-    """
-
-    return HTMLResponse(content=html_content, status_code=200)
+    return pokemon
 
 
 @router.get("/get-all-legendary-pokemons")
